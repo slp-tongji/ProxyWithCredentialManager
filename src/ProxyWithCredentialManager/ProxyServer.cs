@@ -8,19 +8,16 @@ namespace ProxyWithCredentialManager;
 public sealed class ProxyServer : IDisposable
 {
     private readonly Titanium.Web.Proxy.ProxyServer server;
+    private readonly ProxyCredentialManager credentials;
 
     private ProxyServer(Titanium.Web.Proxy.ProxyServer server, ProxyCredentialManager credentials)
     {
         this.server = server;
-        this.Credentials = credentials;
+        this.credentials = credentials;
     }
 
-    public ProxyCredentialManager Credentials { get; }
-
-    public static ProxyServer Create(int port, string databasePath)
+    public static ProxyServer Start(int port, ProxyCredentialManager credentials)
     {
-        var credentials = ProxyCredentialManager.Open(databasePath);
-
         var server = new Titanium.Web.Proxy.ProxyServer(
             userTrustRootCertificate: false,
             machineTrustRootCertificate: false,
@@ -39,12 +36,11 @@ public sealed class ProxyServer : IDisposable
 
     private Task<bool> ValidateAsync(SessionEventArgsBase? session, string credentialId, string credential)
     {
-        return Task.FromResult(this.Credentials.Verify(credentialId, credential));
+        return Task.FromResult(this.credentials.Verify(credentialId, credential));
     }
 
     public void Dispose()
     {
         this.server.Dispose();
-        this.Credentials.Dispose();
     }
 }
