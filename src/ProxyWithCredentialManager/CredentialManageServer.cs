@@ -51,8 +51,8 @@ public sealed class CredentialManageServer : IAsyncDisposable
         var items = new List<QueryItem>();
         foreach (var credentialId in request.CredentialIds)
         {
-            var expire = this.proxyCredentials.Query(credentialId);
-            if (expire is not null)
+            var (exists, expire) = this.proxyCredentials.Query(credentialId);
+            if (exists)
             {
                 items.Add(new QueryItem(credentialId, expire));
             }

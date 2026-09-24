@@ -58,19 +58,19 @@ public sealed class ProxyCredentialManager : IDisposable
         return plainPassword;
     }
 
-    public DateTimeOffset? Query(string credentialId)
+    public (bool Exists, DateTimeOffset? Expire) Query(string credentialId)
     {
         var entry = this.entries.FindById(credentialId);
         if (entry is null)
-            return null;
+            return (false, null);
 
         if (entry.Expire is { } expire && expire <= DateTimeOffset.UtcNow)
         {
             this.entries.Delete(credentialId);
-            return null;
+            return (false, null);
         }
 
-        return entry.Expire;
+        return (true, entry.Expire);
     }
 
     public void Remove(string credentialId)
