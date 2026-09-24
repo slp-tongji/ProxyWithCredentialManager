@@ -20,7 +20,7 @@ public sealed partial class RunCommand : ICommand
     {
         var dataDirectory = new DirectoryInfo(DataDirectory);
 
-        using var proxy = await ProxyServer.CreateAsync(
+        using var proxy = ProxyServer.Create(
             ProxyPort,
             new DirectoryInfo(Path.Combine(dataDirectory.FullName, "proxy")));
         await using var credentialManageServer = await CredentialManageServer.StartAsync(

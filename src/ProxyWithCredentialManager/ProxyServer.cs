@@ -17,12 +17,10 @@ public sealed class ProxyServer : IDisposable
 
     public ProxyCredentialManager Credentials { get; }
 
-    public static async Task<ProxyServer> CreateAsync(int port, DirectoryInfo proxyDirectory, CancellationToken cancellationToken = default)
+    public static ProxyServer Create(int port, DirectoryInfo proxyDirectory)
     {
         proxyDirectory.Create();
-        var credentialsFile = new FileInfo(Path.Combine(proxyDirectory.FullName, "credentials.json"));
-
-        var credentials = await ProxyCredentialManager.LoadAsync(credentialsFile, cancellationToken);
+        var credentials = ProxyCredentialManager.Open(Path.Combine(proxyDirectory.FullName, "credentials.db"));
 
         var server = new Titanium.Web.Proxy.ProxyServer(
             userTrustRootCertificate: false,
@@ -46,5 +44,6 @@ public sealed class ProxyServer : IDisposable
     public void Dispose()
     {
         this.server.Dispose();
+        this.Credentials.Dispose();
     }
 }

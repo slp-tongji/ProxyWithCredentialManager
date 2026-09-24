@@ -29,29 +29,29 @@ public sealed class CredentialManageServer : IAsyncDisposable
 
         var server = new CredentialManageServer(proxyCredentials, app);
 
-        app.MapPost("/create", server.HandleCreateAsync);
-        app.MapPost("/query", server.HandleQueryAsync);
-        app.MapPost("/revoke", server.HandleRevokeAsync);
+        app.MapPost("/create", server.HandleCreate);
+        app.MapPost("/query", server.HandleQuery);
+        app.MapPost("/revoke", server.HandleRevoke);
 
         await app.StartAsync();
         return server;
     }
 
-    private async Task<CreateResponse> HandleCreateAsync(CreateRequest request, CancellationToken cancellationToken)
+    private CreateResponse HandleCreate(CreateRequest request)
     {
         var credentialId = Convert.ToHexString(RandomNumberGenerator.GetBytes(16));
 
-        var proxyPassword = await this.proxyCredentials.AddAsync(credentialId, request.Expire, cancellationToken);
+        var proxyPassword = this.proxyCredentials.Add(credentialId, request.Expire);
 
         return new CreateResponse(credentialId, proxyPassword, request.Expire);
     }
 
-    private async Task<QueryResponse> HandleQueryAsync(QueryRequest request, CancellationToken cancellationToken)
+    private QueryResponse HandleQuery(QueryRequest request)
     {
         var items = new List<QueryItem>();
         foreach (var credentialId in request.CredentialIds)
         {
-            var expire = await this.proxyCredentials.QueryAsync(credentialId, cancellationToken);
+            var expire = this.proxyCredentials.Query(credentialId);
             if (expire is not null)
             {
                 items.Add(new QueryItem(credentialId, expire));
@@ -61,9 +61,9 @@ public sealed class CredentialManageServer : IAsyncDisposable
         return new QueryResponse(items);
     }
 
-    private async Task<RevokeResponse> HandleRevokeAsync(RevokeRequest request, CancellationToken cancellationToken)
+    private RevokeResponse HandleRevoke(RevokeRequest request)
     {
-        await this.proxyCredentials.RemoveAsync(request.CredentialId, cancellationToken);
+        this.proxyCredentials.Remove(request.CredentialId);
         return new RevokeResponse(true);
     }
 

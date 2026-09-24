@@ -1,47 +1,44 @@
-using System.Collections.Concurrent;
 using System.Security.Cryptography;
-using System.Text.Json;
+using LiteDB;
 
 namespace ProxyWithCredentialManager;
 
-public sealed class ProxyCredentialManager
+public sealed class ProxyCredentialManager : IDisposable
 {
-    private readonly FileInfo file;
-    private readonly ConcurrentDictionary<string, (byte[] Hash, DateTimeOffset? Expire)> entries = new();
+    private readonly LiteDatabase database;
+    private readonly ILiteCollection<CredentialEntry> entries;
 
-    private ProxyCredentialManager(FileInfo file)
+    private sealed class CredentialEntry
     {
-        this.file = file;
+        [BsonId]
+        public string Username { get; set; } = "";
+
+        public byte[] Hash { get; set; } = [];
+
+        public DateTime? Expire { get; set; }
     }
 
-    public static async Task<ProxyCredentialManager> LoadAsync(FileInfo file, CancellationToken cancellationToken = default)
+    private ProxyCredentialManager(LiteDatabase database)
     {
-        var manager = new ProxyCredentialManager(file);
-        await manager.LoadAsync(cancellationToken);
-        return manager;
+        this.database = database;
+        this.entries = database.GetCollection<CredentialEntry>("credentials");
     }
 
-    private async Task LoadAsync(CancellationToken cancellationToken)
+    public static ProxyCredentialManager Open(string filePath)
     {
-        if (!this.file.Exists)
-            return;
-
-        await using var stream = new FileStream(this.file.FullName, FileMode.Open, FileAccess.Read);
-        var stored = await JsonSerializer.DeserializeAsync<Dictionary<string, (byte[] Hash, DateTimeOffset? Expire)>>(stream, cancellationToken: cancellationToken) ?? [];
-        foreach (var (username, entry) in stored)
-        {
-            this.entries[username] = entry;
-        }
+        var database = new LiteDatabase(filePath);
+        return new ProxyCredentialManager(database);
     }
 
     public bool Verify(string username, string password)
     {
-        if (!this.entries.TryGetValue(username, out var entry))
+        var entry = this.entries.FindById(username);
+        if (entry is null)
             return false;
 
-        if (entry.Expire is { } expire && expire <= DateTimeOffset.UtcNow)
+        if (entry.Expire is { } expire && expire <= DateTime.UtcNow)
         {
-            this.entries.TryRemove(username, out _);
+            this.entries.Delete(username);
             return false;
         }
 
@@ -49,39 +46,41 @@ public sealed class ProxyCredentialManager
         return CryptographicOperations.FixedTimeEquals(actualHash, entry.Hash);
     }
 
-    public async Task<string> AddAsync(string username, DateTimeOffset? expire, CancellationToken cancellationToken = default)
+    public string Add(string username, DateTimeOffset? expire)
     {
         var plainPassword = Convert.ToHexString(RandomNumberGenerator.GetBytes(18));
-        this.entries[username] = (Hash(plainPassword), expire);
-        await this.StoreAsync(cancellationToken);
+        this.entries.Upsert(new CredentialEntry
+        {
+            Username = username,
+            Hash = Hash(plainPassword),
+            Expire = expire?.UtcDateTime,
+        });
         return plainPassword;
     }
 
-    public async Task<DateTimeOffset?> QueryAsync(string username, CancellationToken cancellationToken = default)
+    public DateTimeOffset? Query(string username)
     {
-        if (!this.entries.TryGetValue(username, out var entry))
+        var entry = this.entries.FindById(username);
+        if (entry is null)
             return null;
 
-        if (entry.Expire is { } expire && expire <= DateTimeOffset.UtcNow)
+        if (entry.Expire is { } expire && expire <= DateTime.UtcNow)
         {
-            this.entries.TryRemove(username, out _);
-            await this.StoreAsync(cancellationToken);
+            this.entries.Delete(username);
             return null;
         }
 
-        return entry.Expire;
+        return entry.Expire is { } e ? new DateTimeOffset(e, TimeSpan.Zero) : null;
     }
 
-    public async Task RemoveAsync(string username, CancellationToken cancellationToken = default)
+    public void Remove(string username)
     {
-        this.entries.TryRemove(username, out _);
-        await this.StoreAsync(cancellationToken);
+        this.entries.Delete(username);
     }
 
-    private async Task StoreAsync(CancellationToken cancellationToken)
+    public void Dispose()
     {
-        await using var stream = new FileStream(this.file.FullName, FileMode.Create, FileAccess.Write);
-        await JsonSerializer.SerializeAsync(stream, this.entries, cancellationToken: cancellationToken);
+        this.database.Dispose();
     }
 
     private static byte[] Hash(string password)
