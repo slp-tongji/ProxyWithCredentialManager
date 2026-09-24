@@ -13,16 +13,12 @@ public sealed partial class RunCommand : ICommand
     [CommandOption("credential-manager-port")]
     public required int CredentialManagerPort { get; set; }
 
-    [CommandOption("data-directory")]
-    public required string DataDirectory { get; set; }
+    [CommandOption("credential-database")]
+    public required FileInfo CredentialDatabase { get; set; }
 
     public async ValueTask ExecuteAsync(IConsole console)
     {
-        var dataDirectory = new DirectoryInfo(DataDirectory);
-
-        using var proxy = ProxyServer.Create(
-            ProxyPort,
-            new DirectoryInfo(Path.Combine(dataDirectory.FullName, "proxy")));
+        using var proxy = ProxyServer.Create(ProxyPort, CredentialDatabase.FullName);
         await using var credentialManageServer = await CredentialManageServer.StartAsync(
             proxy.Credentials, CredentialManagerPort);
 

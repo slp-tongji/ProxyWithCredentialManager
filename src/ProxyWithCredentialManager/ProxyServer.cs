@@ -17,10 +17,9 @@ public sealed class ProxyServer : IDisposable
 
     public ProxyCredentialManager Credentials { get; }
 
-    public static ProxyServer Create(int port, DirectoryInfo proxyDirectory)
+    public static ProxyServer Create(int port, string databasePath)
     {
-        proxyDirectory.Create();
-        var credentials = ProxyCredentialManager.Open(Path.Combine(proxyDirectory.FullName, "credentials.db"));
+        var credentials = ProxyCredentialManager.Open(databasePath);
 
         var server = new Titanium.Web.Proxy.ProxyServer(
             userTrustRootCertificate: false,
