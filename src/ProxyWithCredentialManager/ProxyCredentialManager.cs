@@ -11,9 +11,9 @@ public sealed class ProxyCredentialManager : IDisposable
     private sealed class CredentialEntry
     {
         [BsonId]
-        public string Username { get; set; } = "";
+        public required string CredentialId { get; set; }
 
-        public byte[] Hash { get; set; } = [];
+        public required byte[] CredentialHash { get; set; }
 
         public DateTime? Expire { get; set; }
     }
@@ -30,52 +30,52 @@ public sealed class ProxyCredentialManager : IDisposable
         return new ProxyCredentialManager(database);
     }
 
-    public bool Verify(string username, string password)
+    public bool Verify(string credentialId, string credential)
     {
-        var entry = this.entries.FindById(username);
+        var entry = this.entries.FindById(credentialId);
         if (entry is null)
             return false;
 
         if (entry.Expire is { } expire && expire <= DateTime.UtcNow)
         {
-            this.entries.Delete(username);
+            this.entries.Delete(credentialId);
             return false;
         }
 
-        var actualHash = Hash(password);
-        return CryptographicOperations.FixedTimeEquals(actualHash, entry.Hash);
+        var actualHash = Hash(credential);
+        return CryptographicOperations.FixedTimeEquals(actualHash, entry.CredentialHash);
     }
 
-    public string Add(string username, DateTimeOffset? expire)
+    public string Add(string credentialId, DateTimeOffset? expire)
     {
         var plainPassword = Convert.ToHexString(RandomNumberGenerator.GetBytes(18));
         this.entries.Upsert(new CredentialEntry
         {
-            Username = username,
-            Hash = Hash(plainPassword),
+            CredentialId = credentialId,
+            CredentialHash = Hash(plainPassword),
             Expire = expire?.UtcDateTime,
         });
         return plainPassword;
     }
 
-    public DateTimeOffset? Query(string username)
+    public DateTimeOffset? Query(string credentialId)
     {
-        var entry = this.entries.FindById(username);
+        var entry = this.entries.FindById(credentialId);
         if (entry is null)
             return null;
 
         if (entry.Expire is { } expire && expire <= DateTime.UtcNow)
         {
-            this.entries.Delete(username);
+            this.entries.Delete(credentialId);
             return null;
         }
 
         return entry.Expire is { } e ? new DateTimeOffset(e, TimeSpan.Zero) : null;
     }
 
-    public void Remove(string username)
+    public void Remove(string credentialId)
     {
-        this.entries.Delete(username);
+        this.entries.Delete(credentialId);
     }
 
     public void Dispose()

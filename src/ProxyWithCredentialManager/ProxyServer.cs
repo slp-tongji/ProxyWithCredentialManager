@@ -38,8 +38,8 @@ public sealed class ProxyServer : IDisposable
         return proxy;
     }
 
-    private Task<bool> ValidateAsync(SessionEventArgsBase? session, string username, string password)
-        => Task.FromResult(this.Credentials.Verify(username, password));
+    private Task<bool> ValidateAsync(SessionEventArgsBase? session, string credentialId, string credential)
+        => Task.FromResult(this.Credentials.Verify(credentialId, credential));
 
     public void Dispose()
     {
