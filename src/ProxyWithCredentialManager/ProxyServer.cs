@@ -3,9 +3,9 @@ using Titanium.Web.Proxy;
 using Titanium.Web.Proxy.EventArguments;
 using Titanium.Web.Proxy.Models;
 
-namespace ProxyWithCredentialManager.Proxy;
+namespace ProxyWithCredentialManager;
 
-public sealed class ProxyServer : IAsyncDisposable
+public sealed class ProxyServer : IDisposable
 {
     private readonly Titanium.Web.Proxy.ProxyServer server;
 
@@ -43,7 +43,7 @@ public sealed class ProxyServer : IAsyncDisposable
     private Task<bool> ValidateAsync(SessionEventArgsBase? session, string username, string password)
         => Task.FromResult(this.Credentials.Verify(username, password));
 
-    public async ValueTask DisposeAsync()
+    public void Dispose()
     {
         this.server.Dispose();
     }

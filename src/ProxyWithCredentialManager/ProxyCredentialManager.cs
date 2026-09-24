@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text.Json;
 
-namespace ProxyWithCredentialManager.Proxy;
+namespace ProxyWithCredentialManager;
 
 public sealed class ProxyCredentialManager
 {

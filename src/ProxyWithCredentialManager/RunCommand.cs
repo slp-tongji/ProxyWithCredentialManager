@@ -1,10 +1,8 @@
 using CliFx;
 using CliFx.Binding;
 using CliFx.Infrastructure;
-using ProxyWithCredentialManager.CredentialManagement;
-using ProxyWithCredentialManager.Proxy;
 
-namespace ProxyWithCredentialManager.Commands;
+namespace ProxyWithCredentialManager;
 
 [Command("run")]
 public sealed partial class RunCommand : ICommand
@@ -22,7 +20,7 @@ public sealed partial class RunCommand : ICommand
     {
         var dataDirectory = new DirectoryInfo(DataDirectory);
 
-        await using var proxy = await ProxyServer.CreateAsync(
+        using var proxy = await ProxyServer.CreateAsync(
             ProxyPort,
             new DirectoryInfo(Path.Combine(dataDirectory.FullName, "proxy")));
         await using var credentialManageServer = await CredentialManageServer.StartAsync(

@@ -2,10 +2,9 @@ using System.Security.Cryptography;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
-using ProxyWithCredentialManager.Proxy;
 using Tjslp.CredentialManager.Protocol;
 
-namespace ProxyWithCredentialManager.CredentialManagement;
+namespace ProxyWithCredentialManager;
 
 public sealed class CredentialManageServer : IAsyncDisposable
 {
