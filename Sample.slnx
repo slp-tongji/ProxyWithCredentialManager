@@ -1,5 +1,5 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="src/Sample/Sample.csproj" />
+    <Project Path="src/ProxyWithCredentialManager/ProxyWithCredentialManager.csproj" />
   </Folder>
 </Solution>
