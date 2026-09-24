@@ -15,7 +15,7 @@ public sealed class ProxyCredentialManager : IDisposable
 
         public required byte[] CredentialHash { get; set; }
 
-        public DateTime? Expire { get; set; }
+        public DateTimeOffset? Expire { get; set; }
     }
 
     private ProxyCredentialManager(LiteDatabase database)
@@ -36,7 +36,7 @@ public sealed class ProxyCredentialManager : IDisposable
         if (entry is null)
             return false;
 
-        if (entry.Expire is { } expire && expire <= DateTime.UtcNow)
+        if (entry.Expire is { } expire && expire <= DateTimeOffset.UtcNow)
         {
             this.entries.Delete(credentialId);
             return false;
@@ -53,7 +53,7 @@ public sealed class ProxyCredentialManager : IDisposable
         {
             CredentialId = credentialId,
             CredentialHash = Hash(plainPassword),
-            Expire = expire?.UtcDateTime,
+            Expire = expire,
         });
         return plainPassword;
     }
@@ -64,13 +64,13 @@ public sealed class ProxyCredentialManager : IDisposable
         if (entry is null)
             return null;
 
-        if (entry.Expire is { } expire && expire <= DateTime.UtcNow)
+        if (entry.Expire is { } expire && expire <= DateTimeOffset.UtcNow)
         {
             this.entries.Delete(credentialId);
             return null;
         }
 
-        return entry.Expire is { } e ? new DateTimeOffset(e, TimeSpan.Zero) : null;
+        return entry.Expire;
     }
 
     public void Remove(string credentialId)
