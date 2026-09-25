@@ -17,7 +17,7 @@ public sealed class CredentialManageServer : IAsyncDisposable
         this.app = app;
     }
 
-    public static async Task<CredentialManageServer> StartAsync(
+    public static async Task RunAsync(
         ProxyCredentialManager proxyCredentials, int port)
     {
         var builder = WebApplication.CreateEmptyBuilder(new WebApplicationOptions());
@@ -27,14 +27,13 @@ public sealed class CredentialManageServer : IAsyncDisposable
 
         var app = builder.Build();
 
-        var server = new CredentialManageServer(proxyCredentials, app);
+        await using var server = new CredentialManageServer(proxyCredentials, app);
 
         app.MapPost("/create", server.HandleCreate);
         app.MapPost("/query", server.HandleQuery);
         app.MapPost("/revoke", server.HandleRevoke);
 
-        await app.StartAsync();
-        return server;
+        await app.RunAsync();
     }
 
     private CreateResponse HandleCreate(CreateRequest request)
