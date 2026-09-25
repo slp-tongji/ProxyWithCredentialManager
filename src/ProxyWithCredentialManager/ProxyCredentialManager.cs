@@ -22,6 +22,7 @@ public sealed class ProxyCredentialManager : IDisposable
     {
         this.database = database;
         this.entries = database.GetCollection<CredentialEntry>("credentials");
+        this.entries.EnsureIndex(x => x.CredentialHash, unique: true);
     }
 
     public static ProxyCredentialManager Open(string filePath)
@@ -30,20 +31,20 @@ public sealed class ProxyCredentialManager : IDisposable
         return new ProxyCredentialManager(database);
     }
 
-    public bool Verify(string credentialId, string credential)
+    public bool Verify(string credential)
     {
-        var entry = this.entries.FindById(credentialId);
+        var hash = Hash(credential);
+        var entry = this.entries.Query().Where(x => x.CredentialHash == hash).SingleOrDefault();
         if (entry is null)
             return false;
 
         if (entry.Expire is { } expire && expire <= DateTimeOffset.UtcNow)
         {
-            this.entries.Delete(credentialId);
+            this.entries.Delete(entry.CredentialId);
             return false;
         }
 
-        var actualHash = Hash(credential);
-        return CryptographicOperations.FixedTimeEquals(actualHash, entry.CredentialHash);
+        return true;
     }
 
     public string Add(string credentialId, DateTimeOffset? expire)

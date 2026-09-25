@@ -36,7 +36,7 @@ public sealed class ProxyServer : IDisposable
 
     private Task<bool> ValidateAsync(SessionEventArgsBase? session, string credentialId, string credential)
     {
-        return Task.FromResult(this.credentials.Verify(credentialId, credential));
+        return Task.FromResult(this.credentials.Verify(credential));
     }
 
     public void Dispose()
