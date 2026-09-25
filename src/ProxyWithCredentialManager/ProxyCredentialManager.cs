@@ -13,7 +13,7 @@ public sealed class ProxyCredentialManager : IDisposable
         [BsonId]
         public Guid CredentialId { get; set; }
 
-        public required byte[] CredentialHash { get; set; }
+        public required string CredentialHash { get; set; }
 
         public DateTimeOffset? Expire { get; set; }
     }
@@ -89,9 +89,9 @@ public sealed class ProxyCredentialManager : IDisposable
         this.database.Dispose();
     }
 
-    private static byte[] Hash(string password)
+    private static string Hash(string password)
     {
         var bytes = System.Text.Encoding.UTF8.GetBytes(password);
-        return SHA256.HashData(bytes);
+        return Convert.ToBase64String(SHA256.HashData(bytes));
     }
 }
