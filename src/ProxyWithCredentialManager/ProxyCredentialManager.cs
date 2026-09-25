@@ -11,7 +11,7 @@ public sealed class ProxyCredentialManager : IDisposable
     private sealed class CredentialEntry
     {
         [BsonId]
-        public required string CredentialId { get; set; }
+        public Guid CredentialId { get; set; }
 
         public required byte[] CredentialHash { get; set; }
 
@@ -47,27 +47,31 @@ public sealed class ProxyCredentialManager : IDisposable
         return true;
     }
 
-    public string Add(string credentialId, DateTimeOffset? expire)
+    public (string CredentialId, string Credential) Add(DateTimeOffset? expire)
     {
         var plainPassword = Convert.ToHexString(RandomNumberGenerator.GetBytes(18));
-        this.entries.Upsert(new CredentialEntry
+        var entry = new CredentialEntry
         {
-            CredentialId = credentialId,
+            CredentialId = Guid.NewGuid(),
             CredentialHash = Hash(plainPassword),
             Expire = expire,
-        });
-        return plainPassword;
+        };
+        this.entries.Insert(entry);
+        return (entry.CredentialId.ToString(), plainPassword);
     }
 
     public (bool Exists, DateTimeOffset? Expire) Query(string credentialId)
     {
-        var entry = this.entries.FindById(credentialId);
+        if (!Guid.TryParse(credentialId, out var id))
+            return (false, null);
+
+        var entry = this.entries.FindById(id);
         if (entry is null)
             return (false, null);
 
         if (entry.Expire is { } expire && expire <= DateTimeOffset.UtcNow)
         {
-            this.entries.Delete(credentialId);
+            this.entries.Delete(id);
             return (false, null);
         }
 
@@ -76,7 +80,8 @@ public sealed class ProxyCredentialManager : IDisposable
 
     public void Remove(string credentialId)
     {
-        this.entries.Delete(credentialId);
+        if (Guid.TryParse(credentialId, out var id))
+            this.entries.Delete(id);
     }
 
     public void Dispose()

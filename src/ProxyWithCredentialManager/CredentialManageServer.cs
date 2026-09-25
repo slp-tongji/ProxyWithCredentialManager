@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
@@ -38,9 +37,7 @@ public sealed class CredentialManageServer : IAsyncDisposable
 
     private CreateResponse HandleCreate(CreateRequest request)
     {
-        var credentialId = Convert.ToHexString(RandomNumberGenerator.GetBytes(16));
-
-        var proxyPassword = this.proxyCredentials.Add(credentialId, request.Expire);
+        var (credentialId, proxyPassword) = this.proxyCredentials.Add(request.Expire);
 
         return new CreateResponse(credentialId, proxyPassword, request.Expire);
     }
